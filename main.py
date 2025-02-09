@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from carbon_calc import validate_url, get_page_size, calculate_carbon_footprint
 from utils import create_carbon_gauge, create_energy_comparison
+from pdf_generator import create_pdf_report
 
 # Page configuration
 st.set_page_config(
@@ -50,54 +51,73 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 # Get page size and calculate metrics
                 page_size = get_page_size(url)
                 metrics = calculate_carbon_footprint(page_size, monthly_visits)
-                
+
+                # Store metrics in session state for PDF download
+                st.session_state.metrics = metrics
+                st.session_state.analysis_url = url
+                st.session_state.monthly_visits = monthly_visits
+
                 # Display metrics in columns
                 col1, col2, col3, col4 = st.columns(4)
-                
+
                 with col1:
                     st.metric(
                         "Page Size",
                         f"{metrics['page_size_kb']:.2f} KB",
                         help="Total size of the webpage including all resources"
                     )
-                
+
                 with col2:
                     st.metric(
                         "Annual Energy",
                         f"{metrics['annual_energy_kwh']:.2f} kWh",
                         help="Estimated annual energy consumption"
                     )
-                
+
                 with col3:
                     st.metric(
                         "Carbon Emissions",
                         f"{metrics['annual_carbon_kg']:.2f} kg CO2",
                         help="Estimated annual carbon dioxide emissions"
                     )
-                
+
                 with col4:
                     st.metric(
                         "Trees Needed",
                         f"{metrics['trees_needed']} trees",
                         help="Number of trees needed to offset annual emissions"
                     )
-                
+
                 # Visualizations
                 st.subheader("Impact Visualization")
                 col1, col2 = st.columns(2)
-                
+
                 with col1:
                     st.plotly_chart(
                         create_carbon_gauge(metrics['annual_carbon_kg']),
                         use_container_width=True
                     )
-                
+
                 with col2:
                     st.plotly_chart(
                         create_energy_comparison(metrics['annual_energy_kwh']),
                         use_container_width=True
                     )
-                
+
+                # Add PDF download button after analysis
+                if st.button("📥 Download Detailed PDF Report"):
+                    pdf_bytes = create_pdf_report(
+                        metrics,
+                        url,
+                        monthly_visits
+                    )
+                    st.download_button(
+                        label="Click to Download PDF Report",
+                        data=pdf_bytes,
+                        file_name="carbon_footprint_report.pdf",
+                        mime="application/pdf"
+                    )
+
                 # Recommendations
                 st.subheader("💡 Recommendations to Reduce Impact")
                 recommendations = [
@@ -107,10 +127,10 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                     "Use a green hosting provider",
                     "Enable compression (GZIP/Brotli)"
                 ]
-                
+
                 for rec in recommendations:
                     st.markdown(f"- {rec}")
-                
+
         except Exception as e:
             st.error(f"Error analyzing website: {str(e)}")
 
