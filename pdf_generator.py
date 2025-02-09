@@ -21,7 +21,7 @@ def create_pdf_report(metrics: dict, url: str, monthly_visits: int) -> bytes:
         fontSize=24,
         textColor=colors.HexColor('#2ECC71')
     )
-    
+
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
@@ -68,6 +68,37 @@ def create_pdf_report(metrics: dict, url: str, monthly_visits: int) -> bytes:
         ('PADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(metrics_table)
+    story.append(Spacer(1, 20))
+
+    # Calculation Methodology
+    story.append(Paragraph("Calculation Methodology", heading_style))
+    methodology_text = """
+    Our carbon footprint calculations are based on industry-standard methodologies and empirical research. Here's how we calculate each metric:
+
+    1. Data Transfer Calculation:
+    • We measure the total page size including all resources (HTML, CSS, JavaScript, images, etc.)
+    • Monthly data transfer = Page Size × Monthly Visits
+    • Annual data transfer = Monthly data transfer × 12 months
+
+    2. Energy Consumption:
+    • Energy intensity of web data = 1.805 kWh/GB (kilowatt-hours per gigabyte)
+    • Annual energy consumption = Annual data transfer × Energy intensity
+
+    3. Carbon Emissions:
+    • Carbon intensity of electricity = 442 g CO2/kWh (global average)
+    • Annual carbon emissions = Annual energy consumption × Carbon intensity
+
+    4. Tree Offset Calculation:
+    • Average CO2 absorption per tree = 21 kg CO2 per year
+    • Trees needed = Annual carbon emissions ÷ CO2 absorption per tree
+
+    Note: These calculations represent estimates based on global averages. Actual values may vary depending on:
+    • Data center energy sources
+    • Server locations
+    • Network infrastructure
+    • User device energy efficiency
+    """
+    story.append(Paragraph(methodology_text, styles['Normal']))
     story.append(Spacer(1, 20))
 
     # Recommendations
