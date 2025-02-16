@@ -15,6 +15,10 @@ st.set_page_config(
 with open("styles.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+# Initialize session state
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+
 # Header
 st.title("🌱 Website Carbon Footprint Calculator")
 st.markdown("""
@@ -52,10 +56,11 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 page_size = get_page_size(url)
                 metrics = calculate_carbon_footprint(page_size, monthly_visits)
 
-                # Store metrics in session state for PDF download
+                # Store metrics in session state
                 st.session_state.metrics = metrics
                 st.session_state.analysis_url = url
                 st.session_state.monthly_visits = monthly_visits
+                st.session_state.analysis_complete = True
 
                 # Display metrics in columns
                 col1, col2, col3, col4 = st.columns(4)
@@ -152,35 +157,42 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 - Caching and optimization techniques
                 """)
 
-                # Add PDF download button after analysis
-                if st.button("📥 Download Detailed PDF Report"):
-                    pdf_bytes = create_pdf_report(
-                        metrics,
-                        url,
-                        monthly_visits
-                    )
-                    st.download_button(
-                        label="Click to Download PDF Report",
-                        data=pdf_bytes,
-                        file_name="carbon_footprint_report.pdf",
-                        mime="application/pdf"
-                    )
-
-                # Recommendations
-                st.subheader("💡 Recommendations to Reduce Impact")
-                recommendations = [
-                    "Optimize images and use modern formats (WebP)",
-                    "Implement efficient caching strategies",
-                    "Minimize JavaScript and CSS files",
-                    "Use a green hosting provider",
-                    "Enable compression (GZIP/Brotli)"
-                ]
-
-                for rec in recommendations:
-                    st.markdown(f"- {rec}")
-
         except Exception as e:
             st.error(f"Error analyzing website: {str(e)}")
+
+# Show download button only after analysis is complete
+if st.session_state.analysis_complete:
+    st.markdown("---")
+    st.subheader("📥 Download Detailed Report")
+
+    # Generate PDF report
+    pdf_bytes = create_pdf_report(
+        st.session_state.metrics,
+        st.session_state.analysis_url,
+        st.session_state.monthly_visits
+    )
+
+    # Create download button
+    st.download_button(
+        label="Download PDF Report",
+        data=pdf_bytes,
+        file_name="carbon_footprint_report.pdf",
+        mime="application/pdf",
+        key="pdf_download"
+    )
+
+    # Recommendations
+    st.subheader("💡 Recommendations to Reduce Impact")
+    recommendations = [
+        "Optimize images and use modern formats (WebP)",
+        "Implement efficient caching strategies",
+        "Minimize JavaScript and CSS files",
+        "Use a green hosting provider",
+        "Enable compression (GZIP/Brotli)"
+    ]
+
+    for rec in recommendations:
+        st.markdown(f"- {rec}")
 
 # Footer
 st.markdown("---")
