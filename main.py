@@ -6,6 +6,7 @@ from pdf_generator import create_pdf_report
 from models import get_db, WebsiteMetrics
 from datetime import datetime, timezone
 import plotly.express as px
+from contextlib import contextmanager
 
 # Page configuration
 st.set_page_config(
@@ -21,6 +22,16 @@ with open("styles.css") as f:
 # Initialize session state
 if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
+
+# Cache historical data query
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def get_historical_data(url: str):
+    try:
+        with get_db() as db:
+            return WebsiteMetrics.get_history(db, url)
+    except Exception as e:
+        st.error(f"Error fetching historical data: {str(e)}")
+        return None
 
 # Header
 st.title("🌱 Website Carbon Footprint Calculator")
@@ -66,8 +77,11 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 st.session_state.analysis_complete = True
 
                 # Save measurement to database
-                db = next(get_db())
-                WebsiteMetrics.create_measurement(db, url, metrics, monthly_visits)
+                try:
+                    with get_db() as db:
+                        WebsiteMetrics.create_measurement(db, url, metrics, monthly_visits)
+                except Exception as e:
+                    st.warning(f"Failed to save measurement: {str(e)}")
 
                 # Display metrics in columns
                 col1, col2, col3, col4 = st.columns(4)
@@ -102,15 +116,15 @@ if st.button("Calculate Carbon Footprint", type="primary"):
 
                 # Visualizations
                 st.subheader("Impact Visualization")
-                col1, col2 = st.columns(2)
+                viz_col1, viz_col2 = st.columns(2)
 
-                with col1:
+                with viz_col1:
                     st.plotly_chart(
                         create_carbon_gauge(metrics['annual_carbon_kg']),
                         use_container_width=True
                     )
 
-                with col2:
+                with viz_col2:
                     st.plotly_chart(
                         create_energy_comparison(metrics['annual_energy_kwh']),
                         use_container_width=True
@@ -172,8 +186,8 @@ if st.session_state.analysis_complete:
     st.markdown("---")
     st.subheader("📈 Historical Analysis")
 
-    db = next(get_db())
-    historical_data = WebsiteMetrics.get_history(db, st.session_state.analysis_url)
+    # Get historical data with caching
+    historical_data = get_historical_data(st.session_state.analysis_url)
 
     if historical_data:
         # Convert to DataFrame for easier visualization
@@ -185,7 +199,7 @@ if st.session_state.analysis_complete:
             'Trees Needed': h.trees_needed
         } for h in historical_data])
 
-        # Historical trends
+        # Historical trends with improved performance
         metrics_to_plot = {
             'Page Size (KB)': 'Page size over time',
             'Carbon (kg CO2)': 'Carbon emissions over time',
@@ -193,21 +207,34 @@ if st.session_state.analysis_complete:
         }
 
         for metric, title in metrics_to_plot.items():
-            fig = px.line(df, x='Date', y=metric, title=title)
+            fig = px.line(
+                df, 
+                x='Date', 
+                y=metric, 
+                title=title,
+                template="plotly_white"
+            )
             fig.update_layout(
                 xaxis_title="Measurement Date",
                 yaxis_title=metric,
-                showlegend=False
+                showlegend=False,
+                hovermode='x unified'
             )
             st.plotly_chart(fig, use_container_width=True)
 
-        # Show historical data table
+        # Show historical data table with improved formatting
         st.subheader("📊 Historical Measurements")
-        st.dataframe(df)
+        st.dataframe(
+            df.style.format({
+                'Page Size (KB)': '{:.2f}',
+                'Energy (kWh)': '{:.2f}',
+                'Carbon (kg CO2)': '{:.2f}'
+            }),
+            use_container_width=True
+        )
 
     else:
         st.info("No historical data available yet. This is the first measurement for this website.")
-
 
 # Show download button only after analysis is complete
 if st.session_state.analysis_complete:
