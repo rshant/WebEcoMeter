@@ -26,6 +26,7 @@ if 'analysis_complete' not in st.session_state:
 # Cache historical data query
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def get_historical_data(url: str):
+    """Get historical data with error handling and caching."""
     try:
         with get_db() as db:
             return WebsiteMetrics.get_history(db, url)
@@ -76,12 +77,14 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 st.session_state.monthly_visits = monthly_visits
                 st.session_state.analysis_complete = True
 
-                # Save measurement to database
+                # Save measurement to database with enhanced error handling
                 try:
                     with get_db() as db:
                         WebsiteMetrics.create_measurement(db, url, metrics, monthly_visits)
+                        st.success("Analysis results saved successfully!")
                 except Exception as e:
-                    st.warning(f"Failed to save measurement: {str(e)}")
+                    st.warning(f"Unable to save measurement for historical tracking: {str(e)}")
+                    st.info("You can still view the current analysis results below.")
 
                 # Display metrics in columns
                 col1, col2, col3, col4 = st.columns(4)
@@ -180,6 +183,7 @@ if st.button("Calculate Carbon Footprint", type="primary"):
 
         except Exception as e:
             st.error(f"Error analyzing website: {str(e)}")
+            st.info("Please try again or check if the website is accessible.")
 
 # Show historical data after analysis
 if st.session_state.analysis_complete:
