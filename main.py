@@ -3,6 +3,9 @@ import pandas as pd
 from carbon_calc import validate_url, get_page_size, calculate_carbon_footprint, KWH_PER_GB, CARBON_PER_KWH, TREE_ABSORPTION
 from utils import create_carbon_gauge, create_energy_comparison
 from pdf_generator import create_pdf_report
+from models import get_db, WebsiteMetrics
+from datetime import datetime, timezone
+import plotly.express as px
 
 # Page configuration
 st.set_page_config(
@@ -61,6 +64,10 @@ if st.button("Calculate Carbon Footprint", type="primary"):
                 st.session_state.analysis_url = url
                 st.session_state.monthly_visits = monthly_visits
                 st.session_state.analysis_complete = True
+
+                # Save measurement to database
+                db = next(get_db())
+                WebsiteMetrics.create_measurement(db, url, metrics, monthly_visits)
 
                 # Display metrics in columns
                 col1, col2, col3, col4 = st.columns(4)
@@ -159,6 +166,48 @@ if st.button("Calculate Carbon Footprint", type="primary"):
 
         except Exception as e:
             st.error(f"Error analyzing website: {str(e)}")
+
+# Show historical data after analysis
+if st.session_state.analysis_complete:
+    st.markdown("---")
+    st.subheader("📈 Historical Analysis")
+
+    db = next(get_db())
+    historical_data = WebsiteMetrics.get_history(db, st.session_state.analysis_url)
+
+    if historical_data:
+        # Convert to DataFrame for easier visualization
+        df = pd.DataFrame([{
+            'Date': h.timestamp.strftime('%Y-%m-%d %H:%M'),
+            'Page Size (KB)': h.page_size_kb,
+            'Energy (kWh)': h.annual_energy_kwh,
+            'Carbon (kg CO2)': h.annual_carbon_kg,
+            'Trees Needed': h.trees_needed
+        } for h in historical_data])
+
+        # Historical trends
+        metrics_to_plot = {
+            'Page Size (KB)': 'Page size over time',
+            'Carbon (kg CO2)': 'Carbon emissions over time',
+            'Energy (kWh)': 'Energy consumption over time'
+        }
+
+        for metric, title in metrics_to_plot.items():
+            fig = px.line(df, x='Date', y=metric, title=title)
+            fig.update_layout(
+                xaxis_title="Measurement Date",
+                yaxis_title=metric,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Show historical data table
+        st.subheader("📊 Historical Measurements")
+        st.dataframe(df)
+
+    else:
+        st.info("No historical data available yet. This is the first measurement for this website.")
+
 
 # Show download button only after analysis is complete
 if st.session_state.analysis_complete:
