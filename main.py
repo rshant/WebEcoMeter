@@ -194,6 +194,90 @@ if st.session_state.analysis_complete:
     for rec in recommendations:
         st.markdown(f"- {rec}")
 
+    # Code Optimization Tips
+    st.markdown("#### 🔧 Code Optimization Tips")
+    code_tips = {
+        "Optimize Images": [
+            "Use WebP format for images",
+            "Implement lazy loading with 'loading=\"lazy\"' attribute",
+            "Use responsive images with srcset",
+            "Compress images before upload",
+            "Consider using SVG for icons and logos"
+        ],
+        "Minimize Code": [
+            "Minify CSS, JavaScript, and HTML",
+            "Remove unused CSS and JavaScript",
+            "Use code splitting for JavaScript",
+            "Implement tree shaking in your build process",
+            "Avoid redundant code and dependencies"
+        ],
+        "Caching Strategies": [
+            "Implement browser caching with appropriate headers",
+            "Use service workers for offline functionality",
+            "Enable HTTP/2 or HTTP/3 for efficient data transfer",
+            "Set up CDN caching",
+            "Use localStorage for frequently accessed data"
+        ],
+        "Resource Loading": [
+            "Defer non-critical JavaScript loading",
+            "Preload critical assets",
+            "Use async/defer attributes for scripts",
+            "Implement progressive loading",
+            "Optimize web fonts loading"
+        ]
+    }
+
+    for category, tips in code_tips.items():
+        with st.expander(f"📌 {category}"):
+            for tip in tips:
+                st.markdown(f"• {tip}")
+
+    # Green Hosting Providers
+    st.markdown("#### 🌿 Recommended Green Hosting Providers")
+    hosting_providers = [
+        {
+            "name": "Green Geeks",
+            "features": "300% Renewable Energy Match, SSD Storage, Free CDN",
+            "certification": "EPA Green Power Partner"
+        },
+        {
+            "name": "Google Cloud Platform",
+            "features": "Carbon-neutral since 2007, 100% Renewable Energy Match",
+            "certification": "Carbon Neutral Certified"
+        },
+        {
+            "name": "Amazon Web Services (Green)",
+            "features": "100% Renewable Energy Goal, Multiple Green Regions",
+            "certification": "Renewable Energy Certifications"
+        },
+        {
+            "name": "Microsoft Azure",
+            "features": "Carbon Negative by 2030 Goal, Sustainable Datacenters",
+            "certification": "Carbon Neutral Certified"
+        },
+        {
+            "name": "Krystal Hosting",
+            "features": "100% Renewable Energy, UK-based Green Host",
+            "certification": "Certified B Corporation"
+        }
+    ]
+
+    for provider in hosting_providers:
+        with st.expander(f"🏢 {provider['name']}"):
+            st.markdown(f"""
+            **Features:** {provider['features']}  
+            **Certification:** {provider['certification']}
+            """)
+
+    st.info("""
+    **💡 Pro Tips:**
+    1. Choose the closest data center to your target audience to reduce data travel distance
+    2. Monitor your website's performance regularly using tools like Lighthouse
+    3. Consider implementing AMP (Accelerated Mobile Pages) for mobile users
+    4. Use static site generators when possible to reduce server load
+    5. Implement proper database indexing and query optimization
+    """)
+
 # Footer
 st.markdown("---")
 st.markdown("""
